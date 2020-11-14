@@ -1,27 +1,47 @@
 syntax = "proto3";
 option java_multiple_files = true;
-//option java_package = "be.msec.labgrpc";
+option java_package = "be.msec.labgrpc";
 option java_outer_classname = "Proto";
 option objc_class_prefix = "HLW";
 
 //
 service Server {
-  // server verstuurt berichten naar client
-  rpc sendMessages(Empty) returns (stream Message) {}
+  // broadcast
+  rpc sendMessages(MessageText) returns (Empty) {}
 
-  // client stuurt message naar server
-  rpc writeMessage(Message) returns (Empty) {}
+  rpc sendPrivateMsg(PrivateMessageText) returns (Empty) {}
 
-  // get alle online clients
-  rpc getOnlineClients(Empty) returns (stream Client);
+  rpc connectUser(Client) returns (Empty) {}
+
+  rpc disconnectUser(Client) returns (Empty) {}
+
+  rpc getMessages(Client) returns (stream MessageText) {}
+
+  rpc getOnlineClients(Empty) returns (stream Client) {}
 }
 
-message Message {
+message MessageText {
   string a = 1;
+  string receiver = 2;
+}
+
+message PrivateMessageText {
+  MessageText messageText = 1;
+  string sender = 2;
 }
 
 message Client {
-  string a = 1;
+  string name = 1;
+}
+
+message Connected {
+  bool isConnected = 1;
+  string username = 2;
+}
+
+message Disconnected {
+  bool isDisconnected = 1;
+  string username = 2;
 }
 
 message Empty {};

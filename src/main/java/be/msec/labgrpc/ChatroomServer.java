@@ -1,11 +1,10 @@
 package be.msec.labgrpc;
 
-import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import com.sun.deploy.net.MessageHeader;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -14,21 +13,30 @@ public class ChatroomServer {
     private final int port;
     private final Server server;
 
-    public ChatroomServer(int port) throws IOException {
+    private List<String> messageList;
+    private static List<User> userList;
+
+    private static boolean isRunning;
+
+    public ChatroomServer(int port) {
+        messageList = new ArrayList<Message>();
+        userList = new ArrayList<User>();
         this (ServerBuilder.forPort(port), port);
     }
 
     public ChatroomServer(ServerBuilder<?> serverBuilder, int port) {
         this.port = port;
-        server = serverBuilder.addService(new ServerService()).build();
+        server = serverBuilder.addService(new ChatService()).build();
     }
 
     public void start() throws IOException {
         server.start();
         System.out.println("Server started, listening on " + port);
+        isRunning = true;
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("*** shutting down gRPC server since JVM is shutting down");
             ChatroomServer.this.stop();
+            isRunning = false;
             System.out.println("*** server shut down");
         }));
     }
@@ -50,14 +58,29 @@ public class ChatroomServer {
 
     }
 
-    private static class ServerService extends ServerGRPC.ServerImplBase {
+    private static class ChatService extends ChatgRPC.ChatImplBase {
         @Override
-        public void writeMessage(String message) {
+        public void sendMessages(MessageText message, StreamObserver<Empty> responseObserver) {
 
         }
 
         @Override
-        public void getOnlineClients(Empty nul, StreamObserver)
+        public void connectUser(Client newUser, StreamObserver<Empty> responseObserver) {
+            User user = new User(newUser.getName());
+            userList.add(user);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void disconnectUser(Client user, StreamObserver<Empty> responseObvserver) {
+            userList.remove(user.getName());
+            responseObvserver.onCompleted();
+        }
+
+        @Override
+        public void getMessages(Client user, StreamObserver<MessageText> responseObserver) {
+
+        }
     }
 }
 
