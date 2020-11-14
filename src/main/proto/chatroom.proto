@@ -6,14 +6,17 @@ option objc_class_prefix = "HLW";
 
 //
 service Server {
-  // server verstuurt bericht naar iedereen
-  rpc writeMessage(MessageText) returns (Empty) {}
+  // server verstuurt berichten naar client
+  rpc sendMessages(Empty) returns (stream Message) {}
+
+  // client stuurt message naar server
+  rpc writeMessage(Message) returns (Empty) {}
 
   // get alle online clients
   rpc getOnlineClients(Empty) returns (stream Client);
 }
 
-message MessageText {
+message Message {
   string a = 1;
 }
 
