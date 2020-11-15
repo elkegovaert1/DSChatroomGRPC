@@ -11,18 +11,16 @@ service Server {
 
   rpc sendPrivateMsg(PrivateMessageText) returns (Empty) {}
 
-  rpc connectUser(Client) returns (Empty) {}
+  rpc connectUser(Username) returns (Connected) {}
 
-  rpc disconnectUser(Client) returns (Empty) {}
+  rpc disconnectUser(Username) returns (Disconnected) {}
 
-  rpc getMessages(Client) returns (stream MessageText) {}
+  rpc getMessages(Username) returns (stream MessageText) {}
 
-  rpc getOnlineClients(Empty) returns (stream Client) {}
 }
 
 message MessageText {
-  string a = 1;
-  string receiver = 2;
+  string text = 1;
 }
 
 message PrivateMessageText {
@@ -30,7 +28,7 @@ message PrivateMessageText {
   string sender = 2;
 }
 
-message Client {
+message Username {
   string name = 1;
 }
 

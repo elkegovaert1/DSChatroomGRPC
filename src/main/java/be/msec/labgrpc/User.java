@@ -1,5 +1,8 @@
 package be.msec.labgrpc;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class User {
     private String username;
 
@@ -14,4 +17,6 @@ public class User {
     public void setUsername(String username) {
         this.username = username;
     }
+
+
 }

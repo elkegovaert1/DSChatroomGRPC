@@ -3,30 +3,37 @@ package be.msec.labgrpc;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Observer;
 
-import com.sun.deploy.net.MessageHeader;
+//import com.sun.deploy.net.MessageHeader;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
+import javafx.application.Platform;
+import javafx.beans.Observable;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 public class ChatroomServer {
     private final int port;
     private final Server server;
 
-    private List<String> messageList;
+    private static List<String> messageList;
     private static List<User> userList;
+    public static ObservableList<String> userNames;
 
     private static boolean isRunning;
 
     public ChatroomServer(int port) {
-        messageList = new ArrayList<Message>();
-        userList = new ArrayList<User>();
-        this (ServerBuilder.forPort(port), port);
+        this(ServerBuilder.forPort(port), port);
+        messageList = new ArrayList<>();
+        userList = new ArrayList<>();
+        userNames = FXCollections.observableArrayList();
     }
 
     public ChatroomServer(ServerBuilder<?> serverBuilder, int port) {
         this.port = port;
-        server = serverBuilder.addService(new ChatService()).build();
+        server = serverBuilder.addService(new ServerService()).build();
     }
 
     public void start() throws IOException {
@@ -58,28 +65,42 @@ public class ChatroomServer {
 
     }
 
-    private static class ChatService extends ChatgRPC.ChatImplBase {
+    private static class ServerService extends ServerGrpc.ServerImplBase {
+
         @Override
         public void sendMessages(MessageText message, StreamObserver<Empty> responseObserver) {
-
-        }
-
-        @Override
-        public void connectUser(Client newUser, StreamObserver<Empty> responseObserver) {
-            User user = new User(newUser.getName());
-            userList.add(user);
+            messageList.add(message.getText());
+            // update message to all users
+            responseObserver.onNext(Empty.newBuilder().build());
             responseObserver.onCompleted();
         }
 
         @Override
-        public void disconnectUser(Client user, StreamObserver<Empty> responseObvserver) {
-            userList.remove(user.getName());
-            responseObvserver.onCompleted();
+        public void connectUser(Username newUser, StreamObserver<Connected> responseObserver) {
+            User user = new User(newUser.getName());
+            userList.add(user);
+            Platform.runLater(() -> {
+                userNames.add(newUser.getName());
+            });
+            responseObserver.onNext(Connected.newBuilder().setUsername(newUser.getName()).setIsConnected(true).build());
+            System.out.println("Connected user");
+            responseObserver.onCompleted();
         }
 
         @Override
-        public void getMessages(Client user, StreamObserver<MessageText> responseObserver) {
+        public void disconnectUser(Username user, StreamObserver<Disconnected> responseObvserver) {
+            userList.remove(user.getName());
+            Platform.runLater(() -> {
+                userNames.remove(user.getName());
+            });
+            responseObvserver.onCompleted();
+        }
 
+        // users get newest messages
+        @Override
+        public void getMessages(Username user, StreamObserver<MessageText> responseObserver) {
+            String lastMsg = messageList.get(messageList.size()-1);
+            responseObserver.onNext(MessageText.newBuilder().setText(lastMsg).build());
         }
     }
 }
