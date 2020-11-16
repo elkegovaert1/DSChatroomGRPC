@@ -19,18 +19,18 @@ public class ChatroomServer {
     private final Server server;
 
     private static List<String> messageList;
-    private static List<User> userList;
-    private static List<Username> usernameList;
     public static ObservableList<String> userNames;
+    public static UserManager userManager;
+
+    private static final Object mutex = new Object();
 
     private static boolean isRunning;
 
     public ChatroomServer(int port) {
         this(ServerBuilder.forPort(port), port);
         messageList = new ArrayList<>();
-        userList = new ArrayList<>();
         userNames = FXCollections.observableArrayList();
-        usernameList = new ArrayList<>();
+        userManager = new UserManager();
     }
 
     public ChatroomServer(ServerBuilder<?> serverBuilder, int port) {
@@ -71,42 +71,59 @@ public class ChatroomServer {
 
         @Override
         public void sendMessages(MessageText message, StreamObserver<Empty> responseObserver) {
-            messageList.add(message.getText());
-            for (String s: messageList) {
-                System.out.println(s);
+            synchronized(mutex) {
+                try {
+                    User sender = userManager.findUserByName(message.getSender());
+                    userManager.addToMessages(new Message(message.getText(), sender), mutex);
+                    System.out.println(sender.getUsername() + " is broadcasting... " + message.getText());
+                    responseObserver.onNext(Empty.newBuilder().build());
+                    responseObserver.onCompleted();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    responseObserver.onCompleted();
+                }
             }
-            // send notification to all users
 
-            responseObserver.onNext(Empty.newBuilder().build());
-            responseObserver.onCompleted();
         }
 
         @Override
         public void connectUser(Username newUser, StreamObserver<Connected> responseObserver) {
-            User user = new User(newUser.getName());
-            userList.add(user);
-            usernameList.add(newUser);
+            userManager.connectUser(newUser.getName());
             Platform.runLater(() -> userNames.add(newUser.getName()));
             responseObserver.onNext(Connected.newBuilder().setUsername(newUser.getName()).setIsConnected(true).build());
-            System.out.println("Connected user");
+            System.out.println("Connected new user: " + newUser.getName());
             responseObserver.onCompleted();
         }
 
         @Override
-        public void disconnectUser(Username user, StreamObserver<Disconnected> responseObvserver) {
-            userList.remove(user.getName());
-            Platform.runLater(() -> {
-                userNames.remove(user.getName());
-            });
-            responseObvserver.onCompleted();
+        public void disconnectUser(Username user, StreamObserver<Disconnected> responseObserver) {
+            userManager.disconnectUser(user.getName());
+            Platform.runLater(() -> userNames.remove(user.getName()));
+            responseObserver.onNext(Disconnected.newBuilder().setUsername(user.getName()).build());
+            responseObserver.onCompleted();
         }
 
         // users get newest messages
         @Override
         public void getMessages(Username user, StreamObserver<MessageText> responseObserver) {
-            String lastMsg = messageList.get(messageList.size()-1);
-            responseObserver.onNext(MessageText.newBuilder().setText(lastMsg).build());
-            responseObserver.onCompleted();
+            while (isRunning) {
+                synchronized (mutex) {
+                    try {
+                        mutex.wait();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        responseObserver.onCompleted();
+                    }
+                    Message lastMsg = userManager.getLastMessage(user.getName());
+
+                    System.out.println("Synchronize... " + lastMsg.getText() + " for " + user.getName());
+                    responseObserver.onNext(MessageText.newBuilder()
+                            .setSender(lastMsg.getSender().getUsername())
+                            .setText(lastMsg.getText()).build());
+                }
+            }
+
+
         }
     }
 }

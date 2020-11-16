@@ -17,6 +17,7 @@ import java.util.List;
 public class ServerScreen extends Application {
 
     public static List<ChatroomClient> clients;
+    public static ChatroomServer server;
     public static void main(String[] args){
         launch();
     }
@@ -38,7 +39,7 @@ public class ServerScreen extends Application {
         rootPane.setHgap(10);
 
 
-        ChatroomServer server = new ChatroomServer(5050);
+        server = new ChatroomServer(5050);
         server.start();
 
         Label clientLabel = new Label("Clients Connected");
@@ -52,5 +53,11 @@ public class ServerScreen extends Application {
         primaryStage.show();
 
         return new Scene(rootPane, 400, 300);
+    }
+
+    @Override
+    public void stop() {
+        server.stop();
+        System.exit(0);
     }
 }

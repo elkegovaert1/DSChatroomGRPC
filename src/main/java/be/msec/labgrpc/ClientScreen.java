@@ -1,6 +1,7 @@
 package be.msec.labgrpc;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -58,7 +59,7 @@ public class ClientScreen extends Application {
             /* Change the scene of the primaryStage */
             primaryStage.close();
             primaryStage.setScene(makeChatUI(client));
-            primaryStage.setTitle(client.getUsername());
+            primaryStage.setTitle(client.getUser().getUsername());
             primaryStage.show();
 
         });
@@ -149,8 +150,9 @@ public class ClientScreen extends Application {
 
 
     @Override
-    public void stop() throws RuntimeException, InterruptedException {
+    public void stop() throws InterruptedException {
         client.stopUser();
+        Platform.exit();
         System.exit(0);
     }
 

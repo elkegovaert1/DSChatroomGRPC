@@ -21,6 +21,7 @@ service Server {
 
 message MessageText {
   string text = 1;
+  string sender = 2;
 }
 
 message PrivateMessageText {
