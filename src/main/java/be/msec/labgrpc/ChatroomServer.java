@@ -20,6 +20,7 @@ public class ChatroomServer {
 
     private static List<String> messageList;
     private static List<User> userList;
+    private static List<Username> usernameList;
     public static ObservableList<String> userNames;
 
     private static boolean isRunning;
@@ -29,6 +30,7 @@ public class ChatroomServer {
         messageList = new ArrayList<>();
         userList = new ArrayList<>();
         userNames = FXCollections.observableArrayList();
+        usernameList = new ArrayList<>();
     }
 
     public ChatroomServer(ServerBuilder<?> serverBuilder, int port) {
@@ -70,7 +72,11 @@ public class ChatroomServer {
         @Override
         public void sendMessages(MessageText message, StreamObserver<Empty> responseObserver) {
             messageList.add(message.getText());
-            // update message to all users
+            for (String s: messageList) {
+                System.out.println(s);
+            }
+            // send notification to all users
+
             responseObserver.onNext(Empty.newBuilder().build());
             responseObserver.onCompleted();
         }
@@ -79,9 +85,8 @@ public class ChatroomServer {
         public void connectUser(Username newUser, StreamObserver<Connected> responseObserver) {
             User user = new User(newUser.getName());
             userList.add(user);
-            Platform.runLater(() -> {
-                userNames.add(newUser.getName());
-            });
+            usernameList.add(newUser);
+            Platform.runLater(() -> userNames.add(newUser.getName()));
             responseObserver.onNext(Connected.newBuilder().setUsername(newUser.getName()).setIsConnected(true).build());
             System.out.println("Connected user");
             responseObserver.onCompleted();
@@ -101,6 +106,7 @@ public class ChatroomServer {
         public void getMessages(Username user, StreamObserver<MessageText> responseObserver) {
             String lastMsg = messageList.get(messageList.size()-1);
             responseObserver.onNext(MessageText.newBuilder().setText(lastMsg).build());
+            responseObserver.onCompleted();
         }
     }
 }

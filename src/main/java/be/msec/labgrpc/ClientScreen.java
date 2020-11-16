@@ -51,9 +51,7 @@ public class ClientScreen extends Application {
         Button submitClientInfoButton = new Button("Done");
 
         submitClientInfoButton.setOnAction(Event -> {
-            ChatroomClient client;
             client = new ChatroomClient("localhost", 5050);
-            this.client = client;
             client.connectUser(nameField.getText());
             // sync user method *here*
 
@@ -87,9 +85,9 @@ public class ClientScreen extends Application {
         //setupPriveListView(rootPane);
 
         TextField chatTextField = new TextField();
+
         chatTextField.setOnAction(event -> {
             client.sendMessages(chatTextField.getText());
-            client.getNewMessages();
             chatTextField.clear();
         });
 
