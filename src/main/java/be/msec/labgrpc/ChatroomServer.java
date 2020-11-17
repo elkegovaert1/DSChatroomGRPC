@@ -97,11 +97,22 @@ public class ChatroomServer {
 
         @Override
         public void connectUser(Username newUser, StreamObserver<Connected> responseObserver) {
-            userManager.connectUser(newUser.getName(), newUserMutex);
-            Platform.runLater(() -> userNames.add(newUser.getName()));
-            responseObserver.onNext(Connected.newBuilder().setUsername(newUser.getName()).setIsConnected(true).build());
-            System.out.println("Connected new user: " + newUser.getName());
-            responseObserver.onCompleted();
+            try {
+                userManager.connectUser(newUser.getName(), newUserMutex);
+                Platform.runLater(() -> userNames.add(newUser.getName()));
+                responseObserver.onNext(Connected.newBuilder().setUsername(newUser.getName()).setIsConnected(true).build());
+                System.out.println("Connected new user: " + newUser.getName());
+            } catch (UsernameAlreadyExistsException e) {
+                responseObserver.onNext(Connected.newBuilder()
+                        .setUsername(newUser.getName())
+                        .setIsConnected(false).build());
+            } finally {
+                responseObserver.onCompleted();
+            }
+
+
+
+
         }
 
         @Override

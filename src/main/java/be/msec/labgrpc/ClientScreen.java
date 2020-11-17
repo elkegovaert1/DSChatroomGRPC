@@ -53,15 +53,16 @@ public class ClientScreen extends Application {
 
         submitClientInfoButton.setOnAction(Event -> {
             client = new ChatroomClient("localhost", 5050);
-            client.connectUser(nameField.getText());
-            // sync user method *here*
-
-            /* Change the scene of the primaryStage */
-            primaryStage.close();
-            primaryStage.setScene(makeChatUI(client));
-            primaryStage.setTitle(client.getUser());
-            primaryStage.show();
-
+            if (client.checkName(nameField.getText())) {
+                client.connectUser(nameField.getText());
+                /* Change the scene of the primaryStage */
+                primaryStage.close();
+                primaryStage.setScene(makeChatUI(client));
+                primaryStage.setTitle(client.getUser());
+                primaryStage.show();
+            } else {
+                errorLabel.setText("Username already exists.");
+            }
         });
 
         rootPane.add(nameField, 0, 0);

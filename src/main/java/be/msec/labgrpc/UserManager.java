@@ -12,16 +12,15 @@ public class UserManager {
         users = new ArrayList<>();
     }
 
-    public void connectUser(String username, Object mutex) {
+    public void connectUser(String username, Object mutex) throws UsernameAlreadyExistsException {
         synchronized (mutex) {
-            try {
+            if (users.contains(username)) {
+                throw new UsernameAlreadyExistsException(username);
+            } else {
                 users.add(username);
                 mutex.notifyAll();
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
-
     }
 
     public void disconnectUser(String username) {

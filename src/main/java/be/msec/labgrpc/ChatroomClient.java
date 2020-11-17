@@ -16,6 +16,7 @@ public class ChatroomClient {
     private final ManagedChannel channel;
     private final ServerGrpc.ServerStub asyncStub;
     private final ServerGrpc.ServerBlockingStub blockingStub;
+    private boolean isConnected;
 
     public static ObservableList<String> messages;
     public static ObservableList<PriveGesprek> privegesprekken;
@@ -31,12 +32,16 @@ public class ChatroomClient {
         messages = FXCollections.observableArrayList();
         privegesprekken = FXCollections.observableArrayList();
         onlineUsers = new ArrayList<>();
+        isConnected = false;
+    }
+
+    public boolean checkName(String username) {
+        Username name = Username.newBuilder().setName(username).build();
+        isConnected = blockingStub.connectUser(name).getIsConnected();
+        return isConnected;
     }
 
     public void connectUser(String username) {
-        Username name = Username.newBuilder().setName(username).build();
-        boolean connected = blockingStub.connectUser(name).getIsConnected();
-        System.out.println("Connected: " + connected);
         this.user = username;
         Platform.runLater(() -> sendMessages("joined chat." ));
         Platform.runLater(() -> getOnlineUsers());
