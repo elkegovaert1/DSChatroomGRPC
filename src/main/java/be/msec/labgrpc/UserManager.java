@@ -12,9 +12,15 @@ public class UserManager {
         users = new ArrayList<>();
     }
 
-    public void connectUser(String username) {
-        User user = new User(username);
-        users.add(user);
+    public void connectUser(String username, Object mutex) {
+        synchronized (mutex) {
+            try {
+                users.add(new User(username));
+                mutex.notifyAll();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
     }
 
@@ -48,6 +54,14 @@ public class UserManager {
             return messages.get(messages.size() - 1);
         else
             return null;
+    }
+
+    public User getNewUser() {
+        return users.get(users.size()-1);
+    }
+
+    public List<User> getOnlineUsers() {
+        return users;
     }
 
 

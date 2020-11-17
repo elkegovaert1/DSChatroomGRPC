@@ -17,6 +17,8 @@ service Server {
 
   rpc getMessages(Username) returns (stream MessageText) {}
 
+  rpc getOnlineUsers(Empty) returns (stream Username) {}
+
 }
 
 message MessageText {
@@ -26,7 +28,7 @@ message MessageText {
 
 message PrivateMessageText {
   MessageText messageText = 1;
-  string sender = 2;
+  string receiver = 2;
 }
 
 message Username {

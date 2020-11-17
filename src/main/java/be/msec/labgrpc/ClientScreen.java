@@ -83,7 +83,7 @@ public class ClientScreen extends Application {
         ListView<String> chatListView = new ListView<>();
         chatListView.setItems(client.messages);
 
-        //setupPriveListView(rootPane);
+        setupPriveListView(rootPane);
 
         TextField chatTextField = new TextField();
 
@@ -99,9 +99,23 @@ public class ClientScreen extends Application {
 
     }
 
-    /*
-    public void handleListClick(priveGesprek pg, GridPane rootPane) {
-        ListView<String> priveListView = new ListView<String>();
+    public void setupPriveListView(GridPane rootPane) {
+        ListView<PriveGesprek> priveListView = new ListView<>();
+
+        priveListView.setItems(client.privegesprekken);
+        priveListView.setOnMouseClicked(event -> {
+
+            PriveGesprek pg = priveListView.getSelectionModel().getSelectedItem();
+            //System.out.println("clicked on " + pg.getPartner());
+            rootPane.getChildren().remove(priveListView);
+            handleListClick(pg, rootPane);
+
+        });
+        rootPane.add(priveListView, 1, 0);
+    }
+
+    public void handleListClick(PriveGesprek pg, GridPane rootPane) {
+        ListView<String> priveListView = new ListView<>();
         priveListView.setItems(pg.getBerichten());
         rootPane.add(priveListView, 1, 0);
 
@@ -109,9 +123,7 @@ public class ClientScreen extends Application {
 
         TextField priveTextField = new TextField();
         priveTextField.setOnAction(event -> {
-            client.writeToServer(Client.priveBerichtIdentifier + priveTextField.getText() +
-                    Client.priveBerichtIdentifier + client.getName()+Client.priveBerichtIdentifier+pg.getPartner());
-            pg.getBerichten().add(client.getName() + " : " + priveTextField.getText());
+            client.sendPrivateMessage(priveTextField.getText(), pg.getPartner());
             priveTextField.clear();
         });
 
@@ -127,27 +139,7 @@ public class ClientScreen extends Application {
 
         rootPane.add(pane, 1, 1);
 
-    }*/
-
-    /*public void setupPriveListView(GridPane rootPane) {
-        ListView<priveGesprek> priveListView = new ListView<priveGesprek>();
-
-        priveListView.setItems(client.getPriveBerichten());
-        priveListView.setOnMouseClicked(new EventHandler<MouseEvent>() {
-
-            @Override
-            public void handle(MouseEvent event) {
-
-                priveGesprek pg = priveListView.getSelectionModel().getSelectedItem();
-                //System.out.println("clicked on " + pg.getPartner());
-                rootPane.getChildren().remove(priveListView);
-                handleListClick(pg, rootPane);
-
-            }
-        });
-        rootPane.add(priveListView, 1, 0);
-    }*/
-
+    }
 
     @Override
     public void stop() throws InterruptedException {

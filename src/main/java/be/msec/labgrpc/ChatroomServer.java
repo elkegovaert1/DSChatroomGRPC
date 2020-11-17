@@ -3,14 +3,12 @@ package be.msec.labgrpc;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Observer;
 
 //import com.sun.deploy.net.MessageHeader;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.stub.StreamObserver;
 import javafx.application.Platform;
-import javafx.beans.Observable;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -22,7 +20,8 @@ public class ChatroomServer {
     public static ObservableList<String> userNames;
     public static UserManager userManager;
 
-    private static final Object mutex = new Object();
+    private static final Object newMessageMutex = new Object();
+    private static final Object newUserMutex = new Object();
 
     private static boolean isRunning;
 
@@ -60,21 +59,14 @@ public class ChatroomServer {
             server.awaitTermination();
     }
 
-    public static void main(String[] args) throws Exception{
-        ChatroomServer server = new ChatroomServer(50050);
-        server.start();
-        server.blockUntilShutdown();
-
-    }
-
     private static class ServerService extends ServerGrpc.ServerImplBase {
 
         @Override
         public void sendMessages(MessageText message, StreamObserver<Empty> responseObserver) {
-            synchronized(mutex) {
+            synchronized(newMessageMutex) {
                 try {
                     User sender = userManager.findUserByName(message.getSender());
-                    userManager.addToMessages(new Message(message.getText(), sender), mutex);
+                    userManager.addToMessages(new Message("BROAD:"+message.getText(), sender), newMessageMutex);
                     System.out.println(sender.getUsername() + " is broadcasting... " + message.getText());
                     responseObserver.onNext(Empty.newBuilder().build());
                     responseObserver.onCompleted();
@@ -87,8 +79,25 @@ public class ChatroomServer {
         }
 
         @Override
+        public void sendPrivateMsg(PrivateMessageText privateMessageText, StreamObserver<Empty> responseObserver) {
+            synchronized(newMessageMutex) {
+                try {
+                    User sender = userManager.findUserByName(privateMessageText.getMessageText().getSender());
+                    User receiver = userManager.findUserByName(privateMessageText.getReceiver());
+                    userManager.addToMessages(new Message("PRIVE:" + receiver.getUsername() +":" + privateMessageText.getMessageText().getText(), sender), newMessageMutex);
+                    System.out.println(sender.getUsername() + " is sending private message... " + privateMessageText.getMessageText().getText());
+                    responseObserver.onNext(Empty.newBuilder().build());
+                    responseObserver.onCompleted();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    responseObserver.onCompleted();
+                }
+            }
+        }
+
+        @Override
         public void connectUser(Username newUser, StreamObserver<Connected> responseObserver) {
-            userManager.connectUser(newUser.getName());
+            userManager.connectUser(newUser.getName(), newUserMutex);
             Platform.runLater(() -> userNames.add(newUser.getName()));
             responseObserver.onNext(Connected.newBuilder().setUsername(newUser.getName()).setIsConnected(true).build());
             System.out.println("Connected new user: " + newUser.getName());
@@ -107,9 +116,9 @@ public class ChatroomServer {
         @Override
         public void getMessages(Username user, StreamObserver<MessageText> responseObserver) {
             while (isRunning) {
-                synchronized (mutex) {
+                synchronized (newMessageMutex) {
                     try {
-                        mutex.wait();
+                        newMessageMutex.wait();
                     } catch (Exception e) {
                         e.printStackTrace();
                         responseObserver.onCompleted();
@@ -122,8 +131,30 @@ public class ChatroomServer {
                             .setText(lastMsg.getText()).build());
                 }
             }
+        }
 
+        @Override
+        public void getOnlineUsers(Empty nul, StreamObserver<Username> responseObserver) {
+            List<User> users = userManager.getOnlineUsers();
+            for (User u: users) {
+                responseObserver.onNext(Username.newBuilder().setName(u.getUsername()).build());
+            }
 
+            while (isRunning) {
+                synchronized(newUserMutex) {
+                    try {
+                        newUserMutex.wait();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        responseObserver.onCompleted();
+                    }
+
+                    users = userManager.getOnlineUsers();
+                    for (User u: users) {
+                        responseObserver.onNext(Username.newBuilder().setName(u.getUsername()).build());
+                    }
+                }
+            }
         }
     }
 }
