@@ -118,7 +118,7 @@ public class ChatroomClient {
             }
             if (!bevat) {
                 PriveGesprek pg = new PriveGesprek(this, u);
-                privegesprekken.add(pg);
+                Platform.runLater(() -> privegesprekken.add(pg));
                 System.out.println("Added privegesprek: " + pg.getPartner());
             }
         }
@@ -184,5 +184,4 @@ public class ChatroomClient {
         this.user = user;
     }
 
-    // TODO: als user disconnects => verwijderen uit lijst
 }

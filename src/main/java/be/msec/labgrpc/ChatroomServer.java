@@ -179,4 +179,5 @@ public class ChatroomServer {
     }
 }
 
+// TODO: als server afgesloten, dan alles afsluiten?
 
