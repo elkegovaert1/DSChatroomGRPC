@@ -11,14 +11,13 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 public class ChatroomClient {
-    private User user;
-    private List<User> onlineUsers;
+    private String user;
+    private List<String> onlineUsers;
     private final ManagedChannel channel;
     private final ServerGrpc.ServerStub asyncStub;
     private final ServerGrpc.ServerBlockingStub blockingStub;
 
     public static ObservableList<String> messages;
-    public static ObservableList<String> privateMessages;
     public static ObservableList<PriveGesprek> privegesprekken;
 
     public ChatroomClient(String host, int port){
@@ -30,7 +29,6 @@ public class ChatroomClient {
         blockingStub = ServerGrpc.newBlockingStub(channel);
         asyncStub = ServerGrpc.newStub(channel);
         messages = FXCollections.observableArrayList();
-        privateMessages = FXCollections.observableArrayList();
         privegesprekken = FXCollections.observableArrayList();
         onlineUsers = new ArrayList<>();
     }
@@ -39,7 +37,7 @@ public class ChatroomClient {
         Username name = Username.newBuilder().setName(username).build();
         boolean connected = blockingStub.connectUser(name).getIsConnected();
         System.out.println("Connected: " + connected);
-        user = new User(username);
+        this.user = username;
         Platform.runLater(() -> sendMessages("joined chat." ));
         Platform.runLater(() -> getOnlineUsers());
         getNewMessages();
@@ -47,8 +45,8 @@ public class ChatroomClient {
 
     public void sendMessages(String text) {
         MessageText msgtxt = MessageText.newBuilder()
-                .setText("[" + user.getUsername() + "] " + text)
-                .setSender(user.getUsername()).build();
+                .setText("[" + user + "] " + text)
+                .setSender(user).build();
         System.out.println("Broadcasting... " + msgtxt.getText());
         blockingStub.sendMessages(msgtxt);
 
@@ -57,12 +55,12 @@ public class ChatroomClient {
     public void sendPrivateMessage(String text, String receiver) {
         for (PriveGesprek pg: privegesprekken) {
             if (pg.getPartner().equals(receiver)) {
-                Platform.runLater(() -> pg.addBericht("["+user.getUsername()+"] "+text));
+                Platform.runLater(() -> pg.addBericht("["+user+"] "+text));
             }
         }
         MessageText msgtxt = MessageText.newBuilder()
-                .setText("[" + user.getUsername() + "] " + text)
-                .setSender(user.getUsername()).build();
+                .setText("[" + user + "] " + text)
+                .setSender(user).build();
         PrivateMessageText pmt = PrivateMessageText.newBuilder()
                 .setMessageText(msgtxt)
                 .setReceiver(receiver).build();
@@ -83,16 +81,15 @@ public class ChatroomClient {
             @Override
             public void onCompleted() {}
         };
-        asyncStub.getMessages(Username.newBuilder().setName(user.getUsername()).build(), observer);
+        asyncStub.getMessages(Username.newBuilder().setName(user).build(), observer);
     }
 
     public void getOnlineUsers() {
         StreamObserver<Username> observer = new StreamObserver<Username>() {
             @Override
             public void onNext(Username value) {
-                User u = new User(value.getName());
-                onlineUsers.add(u);
-                generatePriveBerichten(u);
+                onlineUsers.add(value.getName());
+                generatePriveBerichten(value.getName());
             }
 
             @Override
@@ -103,17 +100,17 @@ public class ChatroomClient {
         asyncStub.getOnlineUsers(Empty.newBuilder().build(), observer);
     }
 
-    public void generatePriveBerichten(User u) {
-        if (!user.getUsername().equals(u.getUsername())) {
+    public void generatePriveBerichten(String u) {
+        if (!user.equals(u)) {
             boolean bevat = false;
             for (PriveGesprek pg: privegesprekken) {
-                if (pg.getPartner().equals(u.getUsername())) {
+                if (pg.getPartner().equals(u)) {
                     bevat = true;
                     break;
                 }
             }
             if (!bevat) {
-                PriveGesprek pg = new PriveGesprek(this, u.getUsername());
+                PriveGesprek pg = new PriveGesprek(this, u);
                 privegesprekken.add(pg);
                 System.out.println("Added privegesprek: " + pg.getPartner());
             }
@@ -131,7 +128,7 @@ public class ChatroomClient {
             Platform.runLater(() -> messages.add(sb.toString()));
         }
         else {
-            if (split[1].equals(user.getUsername())) {
+            if (split[1].equals(user)) {
                 for (int i = 2; i < split.length; i++) {
                     sb.append(split[i]);
                 }
@@ -147,25 +144,19 @@ public class ChatroomClient {
     }
 
     public void stopUser() throws InterruptedException {
-        Username username = Username.newBuilder().setName(user.getUsername()).build();
+        Username username = Username.newBuilder().setName(user).build();
         blockingStub.disconnectUser(username);
         sendMessages("left the chat.");
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    public User getUser() {
+    public String getUser() {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(String user) {
         this.user = user;
     }
 
-    public static ObservableList<PriveGesprek> getPrivegesprekken() {
-        return privegesprekken;
-    }
-
-    public static void setPrivegesprekken(ObservableList<PriveGesprek> privegesprekken) {
-        ChatroomClient.privegesprekken = privegesprekken;
-    }
+    // TODO: als user disconnects => verwijderen uit lijst
 }

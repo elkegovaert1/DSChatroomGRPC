@@ -2,19 +2,19 @@ package be.msec.labgrpc;
 
 public class Message {
     private String text;
-    private User sender;
+    private String sender;
 
-    public Message(String inhoud, User user) {
+    public Message(String inhoud, String user) {
         this.text = inhoud;
         this.sender = user;
     }
 
     @Override
     public String toString() {
-        return "["+this.sender.getUsername()+"] " + this.text;
+        return "["+this.sender+"] " + this.text;
     }
 
-    public User getSender() {
+    public String getSender() {
         return sender;
     }
 
@@ -26,7 +26,7 @@ public class Message {
         this.text = text;
     }
 
-    public void setSender(User sender) {
+    public void setSender(String sender) {
         this.sender = sender;
     }
 }

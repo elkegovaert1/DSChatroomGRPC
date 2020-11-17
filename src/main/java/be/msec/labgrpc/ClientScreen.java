@@ -59,7 +59,7 @@ public class ClientScreen extends Application {
             /* Change the scene of the primaryStage */
             primaryStage.close();
             primaryStage.setScene(makeChatUI(client));
-            primaryStage.setTitle(client.getUser().getUsername());
+            primaryStage.setTitle(client.getUser());
             primaryStage.show();
 
         });

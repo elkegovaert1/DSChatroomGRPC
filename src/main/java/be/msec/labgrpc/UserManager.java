@@ -5,7 +5,7 @@ import java.util.List;
 
 public class UserManager {
     private final List<Message> messages;
-    private final List<User> users;
+    private final List<String> users;
 
     public UserManager() {
         messages = new ArrayList<>();
@@ -15,7 +15,7 @@ public class UserManager {
     public void connectUser(String username, Object mutex) {
         synchronized (mutex) {
             try {
-                users.add(new User(username));
+                users.add(username);
                 mutex.notifyAll();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -28,9 +28,9 @@ public class UserManager {
         users.remove(username);
     }
 
-    public User findUserByName(String username) {
-        for (User u: users) {
-            if (u.getUsername().equals(username)) {
+    public String findUserByName(String username) {
+        for (String u: users) {
+            if (u.equals(username)) {
                 return u;
             }
         }
@@ -49,18 +49,18 @@ public class UserManager {
 
     }
 
-    public Message getLastMessage(String userName) {
+    public Message getLastMessage() {
         if (!messages.isEmpty())
             return messages.get(messages.size() - 1);
         else
             return null;
     }
 
-    public User getNewUser() {
+    public String getNewUser() {
         return users.get(users.size()-1);
     }
 
-    public List<User> getOnlineUsers() {
+    public List<String> getOnlineUsers() {
         return users;
     }
 

@@ -65,9 +65,9 @@ public class ChatroomServer {
         public void sendMessages(MessageText message, StreamObserver<Empty> responseObserver) {
             synchronized(newMessageMutex) {
                 try {
-                    User sender = userManager.findUserByName(message.getSender());
+                    String sender = userManager.findUserByName(message.getSender());
                     userManager.addToMessages(new Message("BROAD:"+message.getText(), sender), newMessageMutex);
-                    System.out.println(sender.getUsername() + " is broadcasting... " + message.getText());
+                    System.out.println(sender + " is broadcasting... " + message.getText());
                     responseObserver.onNext(Empty.newBuilder().build());
                     responseObserver.onCompleted();
                 } catch (Exception e) {
@@ -82,10 +82,10 @@ public class ChatroomServer {
         public void sendPrivateMsg(PrivateMessageText privateMessageText, StreamObserver<Empty> responseObserver) {
             synchronized(newMessageMutex) {
                 try {
-                    User sender = userManager.findUserByName(privateMessageText.getMessageText().getSender());
-                    User receiver = userManager.findUserByName(privateMessageText.getReceiver());
-                    userManager.addToMessages(new Message("PRIVE:" + receiver.getUsername() +":" + privateMessageText.getMessageText().getText(), sender), newMessageMutex);
-                    System.out.println(sender.getUsername() + " is sending private message... " + privateMessageText.getMessageText().getText());
+                    String sender = userManager.findUserByName(privateMessageText.getMessageText().getSender());
+                    String receiver = userManager.findUserByName(privateMessageText.getReceiver());
+                    userManager.addToMessages(new Message("PRIVE:" + receiver +":" + privateMessageText.getMessageText().getText(), sender), newMessageMutex);
+                    System.out.println(sender + " is sending private message... " + privateMessageText.getMessageText().getText());
                     responseObserver.onNext(Empty.newBuilder().build());
                     responseObserver.onCompleted();
                 } catch (Exception e) {
@@ -123,11 +123,11 @@ public class ChatroomServer {
                         e.printStackTrace();
                         responseObserver.onCompleted();
                     }
-                    Message lastMsg = userManager.getLastMessage(user.getName());
+                    Message lastMsg = userManager.getLastMessage();
 
                     System.out.println("Synchronize... " + lastMsg.getText() + " for " + user.getName());
                     responseObserver.onNext(MessageText.newBuilder()
-                            .setSender(lastMsg.getSender().getUsername())
+                            .setSender(lastMsg.getSender())
                             .setText(lastMsg.getText()).build());
                 }
             }
@@ -135,9 +135,9 @@ public class ChatroomServer {
 
         @Override
         public void getOnlineUsers(Empty nul, StreamObserver<Username> responseObserver) {
-            List<User> users = userManager.getOnlineUsers();
-            for (User u: users) {
-                responseObserver.onNext(Username.newBuilder().setName(u.getUsername()).build());
+            List<String> users = userManager.getOnlineUsers();
+            for (String u: users) {
+                responseObserver.onNext(Username.newBuilder().setName(u).build());
             }
 
             while (isRunning) {
@@ -150,8 +150,8 @@ public class ChatroomServer {
                     }
 
                     users = userManager.getOnlineUsers();
-                    for (User u: users) {
-                        responseObserver.onNext(Username.newBuilder().setName(u.getUsername()).build());
+                    for (String u: users) {
+                        responseObserver.onNext(Username.newBuilder().setName(u).build());
                     }
                 }
             }
