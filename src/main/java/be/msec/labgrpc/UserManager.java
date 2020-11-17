@@ -23,8 +23,11 @@ public class UserManager {
         }
     }
 
-    public void disconnectUser(String username) {
-        users.remove(username);
+    public void disconnectUser(String username, Object mutex) {
+        synchronized(mutex) {
+            users.remove(username);
+            mutex.notifyAll();
+        }
     }
 
     public String findUserByName(String username) {

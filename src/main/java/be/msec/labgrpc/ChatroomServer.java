@@ -15,6 +15,7 @@ import javafx.collections.ObservableList;
 public class ChatroomServer {
     private final int port;
     private final Server server;
+    private static String disconnectedUser;
 
     private static List<String> messageList;
     public static ObservableList<String> userNames;
@@ -22,6 +23,7 @@ public class ChatroomServer {
 
     private static final Object newMessageMutex = new Object();
     private static final Object newUserMutex = new Object();
+    private static final Object userDisconnectMutex = new Object();
 
     private static boolean isRunning;
 
@@ -52,11 +54,6 @@ public class ChatroomServer {
     public void stop() {
         if (server != null)
             server.shutdown();
-    }
-
-    public void blockUntilShutdown() throws InterruptedException {
-        if (server != null)
-            server.awaitTermination();
     }
 
     private static class ServerService extends ServerGrpc.ServerImplBase {
@@ -109,18 +106,30 @@ public class ChatroomServer {
             } finally {
                 responseObserver.onCompleted();
             }
-
-
-
-
         }
 
         @Override
-        public void disconnectUser(Username user, StreamObserver<Disconnected> responseObserver) {
-            userManager.disconnectUser(user.getName());
+        public void disconnectUser(Username user, StreamObserver<Empty> responseObserver) {
+            userManager.disconnectUser(user.getName(), userDisconnectMutex);
+            disconnectedUser = user.getName();
             Platform.runLater(() -> userNames.remove(user.getName()));
-            responseObserver.onNext(Disconnected.newBuilder().setUsername(user.getName()).build());
+            responseObserver.onNext(Empty.newBuilder().build());
             responseObserver.onCompleted();
+        }
+
+        @Override
+        public void notifyDisconnectedUser(Empty nul, StreamObserver<Username> responseObserver) {
+            while (isRunning) {
+                synchronized(userDisconnectMutex) {
+                    try {
+                        userDisconnectMutex.wait();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        responseObserver.onCompleted();
+                    }
+                    responseObserver.onNext(Username.newBuilder().setName(disconnectedUser).build());
+                }
+            }
         }
 
         // users get newest messages

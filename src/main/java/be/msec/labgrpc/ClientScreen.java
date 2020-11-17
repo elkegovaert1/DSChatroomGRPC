@@ -144,7 +144,9 @@ public class ClientScreen extends Application {
 
     @Override
     public void stop() throws InterruptedException {
-        client.stopUser();
+        if (client != null) {
+            client.stopUser();
+        }
         Platform.exit();
         System.exit(0);
     }

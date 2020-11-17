@@ -30,6 +30,7 @@ public class ChatroomClient {
         blockingStub = ServerGrpc.newBlockingStub(channel);
         asyncStub = ServerGrpc.newStub(channel);
         messages = FXCollections.observableArrayList();
+        messages.add("[Server] Welcome to our Chatroom!");
         privegesprekken = FXCollections.observableArrayList();
         onlineUsers = new ArrayList<>();
         isConnected = false;
@@ -46,6 +47,7 @@ public class ChatroomClient {
         Platform.runLater(() -> sendMessages("joined chat." ));
         Platform.runLater(() -> getOnlineUsers());
         getNewMessages();
+        notifyDisconnectedUser();
     }
 
     public void sendMessages(String text) {
@@ -148,10 +150,29 @@ public class ChatroomClient {
         }
     }
 
+    public void notifyDisconnectedUser() {
+        StreamObserver<Username> observer = new StreamObserver<Username>() {
+            @Override
+            public void onNext(Username value) {
+                onlineUsers.remove(value.getName());
+                for (PriveGesprek pg: privegesprekken) {
+                    if (pg.getPartner().equals(value.getName())) {
+                        Platform.runLater(() -> privegesprekken.remove(pg));
+                    }
+                }
+            }
+            @Override
+            public void onError(Throwable t) {}
+            @Override
+            public void onCompleted() {}
+        };
+        asyncStub.notifyDisconnectedUser(Empty.newBuilder().build(), observer);
+    }
+
     public void stopUser() throws InterruptedException {
+        sendMessages("left the chat.");
         Username username = Username.newBuilder().setName(user).build();
         blockingStub.disconnectUser(username);
-        sendMessages("left the chat.");
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 

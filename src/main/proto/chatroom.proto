@@ -13,11 +13,13 @@ service Server {
 
   rpc connectUser(Username) returns (Connected) {}
 
-  rpc disconnectUser(Username) returns (Disconnected) {}
+  rpc disconnectUser(Username) returns (Empty) {}
 
   rpc getMessages(Username) returns (stream MessageText) {}
 
   rpc getOnlineUsers(Empty) returns (stream Username) {}
+
+  rpc notifyDisconnectedUser(Empty) returns (stream Username) {}
 
 }
 
@@ -37,11 +39,6 @@ message Username {
 
 message Connected {
   bool isConnected = 1;
-  string username = 2;
-}
-
-message Disconnected {
-  bool isDisconnected = 1;
   string username = 2;
 }
 
