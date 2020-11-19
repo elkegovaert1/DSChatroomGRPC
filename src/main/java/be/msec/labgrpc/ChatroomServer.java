@@ -64,7 +64,7 @@ public class ChatroomServer {
                 try {
                     String sender = userManager.findUserByName(message.getSender());
                     userManager.addToMessages(new Message("BROAD:"+message.getText(), sender), newMessageMutex);
-                    System.out.println(sender + " is broadcasting... " + message.getText());
+                    System.out.println(sender + " is broadcasting: " + message.getText());
                     responseObserver.onNext(Empty.newBuilder().build());
                     responseObserver.onCompleted();
                 } catch (Exception e) {
@@ -82,7 +82,7 @@ public class ChatroomServer {
                     String sender = userManager.findUserByName(privateMessageText.getMessageText().getSender());
                     String receiver = userManager.findUserByName(privateMessageText.getReceiver());
                     userManager.addToMessages(new Message("PRIVE:" + receiver +":" + privateMessageText.getMessageText().getText(), sender), newMessageMutex);
-                    System.out.println(sender + " is sending private message... " + privateMessageText.getMessageText().getText());
+                    System.out.println(sender + " is sending private message: " + privateMessageText.getMessageText().getText());
                     responseObserver.onNext(Empty.newBuilder().build());
                     responseObserver.onCompleted();
                 } catch (Exception e) {
@@ -110,6 +110,7 @@ public class ChatroomServer {
 
         @Override
         public void disconnectUser(Username user, StreamObserver<Empty> responseObserver) {
+            System.out.println("User disconnected: " + user.getName());
             userManager.disconnectUser(user.getName(), userDisconnectMutex);
             disconnectedUser = user.getName();
             Platform.runLater(() -> userNames.remove(user.getName()));
@@ -145,7 +146,7 @@ public class ChatroomServer {
                     }
                     Message lastMsg = userManager.getLastMessage();
 
-                    System.out.println("Synchronize... " + lastMsg.getText() + " for " + user.getName());
+                    System.out.println("Sending message to everyone: '" + lastMsg.getText() + "' for " + user.getName());
                     responseObserver.onNext(MessageText.newBuilder()
                             .setSender(lastMsg.getSender())
                             .setText(lastMsg.getText()).build());
@@ -178,6 +179,4 @@ public class ChatroomServer {
         }
     }
 }
-
-// TODO: als server afgesloten, dan alles afsluiten?
 
